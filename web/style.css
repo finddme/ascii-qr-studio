@@ -168,6 +168,12 @@ footer{display:flex;justify-content:space-between;gap:12px;padding:16px 24px;bor
 @keyframes shimmer{50%{opacity:.26}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
+.launch{background:var(--cream) var(--noise-soft);margin:0 -10px;padding:6px 10px}
+@media (min-width:901px){
+  .launch{position:sticky;bottom:10px;z-index:3;box-shadow:0 -10px 0 var(--cream)}
+  .launch .banner canvas{height:88px}
+  canvas#crop{max-height:200px}
+}
 @media (max-width:900px){
   .studio{grid-template-columns:1fr}
   .results{position:relative;top:auto}
