@@ -166,8 +166,8 @@ def create_project(image, url, output, *, columns=64, fit='contain', theme='dark
             for kind, candidate in composed.items():
                 candidate.save(output / f'selected-{kind}.png')
         count = sum(case['passed'] for check in checks.values() for case in check['cases'])
-        figures.append(f'<article><h2>QR 중심 폭 {ratio:.0%}</h2><p>소프트웨어 검사 {count}/14 · '
-                       f'{"선택됨" if selected == name else "통과" if passed else "미통과"}</p>'
+        figures.append(f'<article><h2>QR core width {ratio:.0%}</h2><p>Software checks {count}/14 · '
+                       f'{"selected" if selected == name else "passed" if passed else "failed"}</p>'
                        + ''.join(f'<figure><figcaption>{kind}</figcaption><img alt="{name} {kind}" src="{image_uri(img)}"></figure>'
                                  for kind, img in composed.items()) + '</article>')
     report = {
@@ -182,27 +182,27 @@ def create_project(image, url, output, *, columns=64, fit='contain', theme='dark
         'limitation': 'Digital decoding checks only; real cameras and physical outputs require separate validation.',
     }
     (output / 'validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
-    intro = f'<h1>ASCII 아트 × QR</h1><p>연결 주소: <code>{html.escape(url)}</code></p>'
+    intro = f'<h1>ASCII art × QR</h1><p>Link URL: <code>{html.escape(url)}</code></p>'
     if url == 'https://example.com/':
-        intro += '<p><strong>테스트 주소입니다.</strong></p>'
-    intro += f'<p>QR {len(matrix)}×{len(matrix)} · 오류정정 H · ASCII {data["columns"]}×{data["rows"]} Bold · '
-    intro += f'선택: {selected or "없음 — 검증 실패"}</p><p>사진 → 실제 ASCII 문자 변환 → QR 합성. 모션은 없습니다.</p>'
-    intro += f'<p>문자 렌더러: {renderer} · QR 보정: {core_style} · 크롭: {html.escape(str(crop))}</p>'
+        intro += '<p><strong>This is a test URL.</strong></p>'
+    intro += f'<p>QR {len(matrix)}×{len(matrix)} · Error correction H · ASCII {data["columns"]}×{data["rows"]} Bold · '
+    intro += f'Selected: {selected or "none — verification failed"}</p><p>Photo → real ASCII characters → QR composite. No motion.</p>'
+    intro += f'<p>Character renderer: {renderer} · QR correction: {core_style} · Crop: {html.escape(str(crop))}</p>'
     if renderer == 'tonal':
-        intro += '<p>각 문자 칸의 글자색·바탕색으로 평균 명암을 보존합니다. 원본 사진 오버레이는 사용하지 않습니다.</p>'
-    intro += '<p>디지털 이미지 해독 검사 결과입니다. 실제 카메라와 출력물은 별도로 확인하세요.</p>'
+        intro += '<p>Each character cell keeps the average tone through its glyph and background colors. No photo overlay is used.</p>'
+    intro += '<p>These are digital decode checks. Test real cameras and printed output separately.</p>'
     with Image.open(output / 'plain-qr.png') as plain:
         stages = ''.join(f'<figure><figcaption>{label}</figcaption><img alt="{label}" src="{image_uri(img)}"></figure>'
-                         for label, img in [('원본 배치', framed), ('ASCII 중간 결과', color), ('일반 QR 기준', plain)])
-    page = '''<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ASCII 아트와 QR 합성 비교</title><style>body{margin:28px;background:#17191e;color:#eee;font:16px system-ui}main{max-width:1600px;margin:auto}p{line-height:1.6}code{overflow-wrap:anywhere}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}article{background:#242730;padding:16px;border-radius:12px}h2{font-size:18px}figure{margin:12px 0}figcaption{margin:8px 0;color:#bbb}img{width:100%;height:auto}strong{color:#ffcd83}</style><main>'''
-    page += intro + '<section>' + stages + '</section><h2>합성 강도 비교</h2><section>' + ''.join(figures) + '</section></main></html>'
+                         for label, img in [('Original framing', framed), ('ASCII intermediate', color), ('Plain QR reference', plain)])
+    page = '''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASCII art and QR composite comparison</title><style>body{margin:28px;background:#17191e;color:#eee;font:16px system-ui}main{max-width:1600px;margin:auto}p{line-height:1.6}code{overflow-wrap:anywhere}section{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}article{background:#242730;padding:16px;border-radius:12px}h2{font-size:18px}figure{margin:12px 0}figcaption{margin:8px 0;color:#bbb}img{width:100%;height:auto}strong{color:#ffcd83}</style><main>'''
+    page += intro + '<section>' + stages + '</section><h2>Composite strength comparison</h2><section>' + ''.join(figures) + '</section></main></html>'
     (output / 'preview.html').write_text(page, encoding='utf-8')
     return report
 
 
 def main():
-    parser = argparse.ArgumentParser(description='이미지 → Bold ASCII → 정적 QR 합성 → 해독 검증')
+    parser = argparse.ArgumentParser(description='Image → bold ASCII → static QR composite → decode verification')
     parser.add_argument('image', type=Path)
     parser.add_argument('--url', required=True, help='Exact http(s) destination; never shortened or fetched')
     parser.add_argument('--output', type=Path)

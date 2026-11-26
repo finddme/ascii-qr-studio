@@ -1,10 +1,22 @@
 # ASCII QR Studio
 
-이미지와 URL을 입력하면 **이미지 → ASCII 아트 → ASCII QR 패턴 → 정적 QR 이미지**를 만드는 로컬 도구입니다. 명암을 보존하는 문자 렌더링과 독립 QR 디코더 검증을 제공합니다.
+Turn any image and URL into a scannable QR code made of ASCII art.
 
-## 시작하기
+**Image → ASCII art → ASCII QR pattern → static QR image**, all on your own machine. Every result is re-read by an independent QR decoder before you get it.
 
-필요 환경은 Docker Engine과 Docker Compose입니다. 호스트에 Python이나 Node 패키지를 설치하지 않습니다.
+<p align="center"><img src="docs/images/promo.webp" alt="ASCII QR Studio demo: an image turns into ASCII characters, then the pieces assemble into a verified QR code" width="720"></p>
+
+## Features
+
+- **Tone-preserving ASCII.** Each character cell gets its own glyph color and background color, so shading survives the conversion. No photo is layered behind the QR.
+- **Verified output.** A result is kept only if it decodes to the exact URL under 14 conditions (color and black-and-white × original, grayscale, two downscales, blur, rotation and JPEG).
+- **Local web studio.** Upload, crop, tune the character density, compare original / ASCII / color QR / black-and-white QR, then download the view you like as a PNG or everything as a ZIP.
+- **Command line.** The same pipeline as scriptable commands.
+- **Private by default.** Runs in Docker, binds to localhost only, and never uploads your files or visits the URL you encode.
+
+## Quick start
+
+You need Docker Engine with Docker Compose. Nothing else is installed on your host.
 
 ```bash
 git clone https://github.com/finddme/ascii-qr-studio.git
@@ -12,72 +24,92 @@ cd ascii-qr-studio
 ./studio.sh
 ```
 
-브라우저에서 **http://localhost:8787**을 엽니다. 이미지를 선택하고 URL을 입력한 뒤, 필요하면 사진 위에서 사용할 영역을 드래그하세요. 문자 밀도와 배치를 조절하고 생성하면 컬러 QR·흑백 QR·ASCII 중간 결과를 비교하고 ZIP으로 다운로드할 수 있습니다. 작업 기록에서 재실행하거나 입력과 결과를 삭제할 수 있습니다.
+Open **http://localhost:8787**.
 
-UI는 호스트 루프백에만 노출됩니다. 파일과 URL을 외부 서비스에 보내지 않으며 URL 페이지의 내용이나 접속 가능 여부를 검사하지 않습니다. 요청한 주소 자체를 QR에 넣습니다. 이미지 최대 12 MB, 24 MP; 변환은 한 번에 하나씩 실행합니다.
+1. Choose an image. Optionally drag on it to pick the area to use.
+2. Enter the URL the QR should open.
+3. Adjust the character density (fewer columns look bold and simple, more look detailed).
+4. Press **READY?** and wait for the decode checks.
+5. Switch between the views and press **Download … (PNG)** to save the one you are looking at, or **All files (ZIP)** for everything. Past jobs stay in **History**, where you can reopen, regenerate or delete them.
+
+Limits: images up to 12 MB and 24 megapixels; one conversion runs at a time.
 
 ```bash
-# 종료
-docker compose stop web
-# 의존성 또는 코드 변경 후
-docker compose build
-# 전체 테스트
-./test.sh
+docker compose stop web       # stop the studio
+git pull && ./studio.sh       # update to the latest version
 ```
 
-## 명령어
+## Command line
 
 ```bash
-./qr.sh '/path/to/image.png' --url 'https://example.com/'
-./qr.sh '/path/to/image.png' --url 'https://example.com/' \
+./qr.sh /path/to/image.png --url https://example.com/
+./qr.sh /path/to/image.png --url https://example.com/ \
   --columns 64 --fit cover --min-version 6 --output dev/output/my-design
-./convert.sh '/path/to/image.png' --preset bold --renderer tonal
+./convert.sh /path/to/image.png --preset bold --renderer tonal   # ASCII only
 ```
 
-출력 경로는 저장소 기준 `dev/output/`입니다. 기존 폴더는 덮어쓰지 않습니다. `--crop LEFT TOP RIGHT BOTTOM`은 0–1 범위의 관심 영역이며 `fit`보다 먼저 적용합니다. 크롭은 수동 지정이고 자동 배경 제거는 아닙니다.
+Results are written under `dev/output/`, and existing folders are never overwritten. `--crop LEFT TOP RIGHT BOTTOM` takes values from 0 to 1 and is applied before `--fit`. Cropping is manual; there is no automatic background removal.
 
-| 옵션 | 의미 |
+| Option | Meaning |
 | --- | --- |
-| `--columns 64` | 문자 수. 적으면 굵고 단순하게, 많으면 세밀하게 |
-| `--fit contain / cover` | 전체 이미지 유지 / 중앙 정사각형 채우기 |
-| `--renderer tonal / classic` | 셀 명암 보존 / 단색 바탕의 기존 표현 |
-| `--core-style adaptive / solid` | 필요한 범위만 명암 보정 / 순흑백 QR 점 |
-| `--min-version 6` | 최소 QR 버전. 긴 URL이면 필요한 버전으로 증가 |
-| `--module-pixels 24` | QR 모듈당 출력 픽셀 수; 실제 인쇄 크기는 아님 |
+| `--columns 64` | Characters per row. Fewer is bolder and simpler, more is finer. |
+| `--fit contain` / `cover` | Keep the whole image / fill a centered square. |
+| `--renderer tonal` / `classic` | Preserve per-cell tone / classic glyphs on a flat background. |
+| `--core-style adaptive` / `solid` | Adjust module centers only as much as needed / pure black-and-white dots. |
+| `--min-version 6` | Minimum QR version. Long URLs raise it automatically. |
+| `--module-pixels 24` | Output pixels per QR module (not a print size). |
 
-`tonal`은 실제 ASCII 글자 마스크와 셀별 글자색·바탕색 두 개만으로 렌더링합니다. 원본 사진을 QR 뒤에 깔지 않습니다. TXT는 색과 바탕색을 담지 않으므로 동일한 외관을 재현하려면 PNG 또는 셀 스타일 JSON을 사용하세요.
+Exit codes: `0` success, `2` invalid input, `3` no candidate passed every decode check.
 
-## 입력·결과 관리
+## Output
 
-**원격에 올리지 않는 모든 작업 자료는 `dev/`에 둡니다.** 폴더 전체가 `.gitignore`로 제외되고 Docker 빌드에도 들어가지 않습니다.
+| File | Contents |
+| --- | --- |
+| `selected-color.png`, `selected-mono.png` | The chosen design, in color and black and white. Created only when every check passes. |
+| `preview.html` | Original framing, ASCII and QR side by side, plus every strength candidate. |
+| `validation.json` | The decoded value of every check, settings and decoder version. |
+| `ascii/` | ASCII as TXT, per-cell style JSON and PNG. |
 
-- `dev/input/`: 직접 관리하는 입력 파일
-- `dev/output/`: CLI 결과
-- `dev/jobs/<id>/`: UI 입력 PNG, 작업 설정·해시·버전, 결과와 검증 기록
-- `dev/archive/`: 로컬 조사·이전 작업 자료
-- `dev/qa/`: 브라우저 검사 자료
+`tonal` rendering uses real glyph masks and exactly two colors per cell. Plain TXT cannot store those colors, so use the PNG or the cell JSON to reproduce the look.
 
-새 clone에서는 실행 스크립트가 필요한 폴더를 생성합니다. UI ZIP에는 결과·설정·검증 기록과 원본 이미지의 미리보기가 포함됩니다. 별도 입력 파일 `input.png`는 제외되지만 사진 내용과 URL은 포함되므로 공유할 때 내용을 확인하세요. 작업 기록은 자동으로 외부에 동기화하거나 만료시키지 않습니다.
+## How verification works
 
-## 결과와 검증
+Finder, timing and other function patterns are kept intact, along with a 4-module quiet zone. The studio tries data-module core widths of 30, 40, 50, 60 and 80%. It tests each candidate under 7 conditions in both color and black and white, and picks the passing candidate that hides the least of your image.
 
-`selected-color.png`와 `selected-mono.png`는 컬러·흑백 14개 해독 검사를 모두 통과한 후보입니다. `preview.html`은 원본 배치·ASCII·QR과 강도별 결과를 비교하며, `validation.json`은 모든 검사의 실제 해독값을 기록합니다. `ascii/`에는 TXT·셀 JSON·PNG가 있습니다.
+A decoder pass is not a judgment of how good the image looks, and it is not a guarantee that a camera will read it. Check that your image is still recognizable. Test a print or screen at its real size with real phones. The best settings depend on the image and the URL, and longer URLs make denser codes.
 
-QR 기능 모듈과 4모듈 여백을 보존합니다. 중심 폭 30/40/50/60/80%를 비교하고, 원본·회색조·두 축소 크기·흐림·회전·JPEG의 7개 조건을 각각 검사합니다. 통과 후보 중 가장 적게 가리는 후보를 선택합니다. 실패하면 최종 선택 이미지를 만들지 않습니다(CLI 종료 코드 3). 입력 오류는 코드 2입니다.
+## Your data
 
-디코더 검사는 시각적 품질을 평가하지 않습니다. 이미지의 형태가 보이는지 직접 검토하고, 실제 카메라와 출력 크기에서도 확인하세요. 이미지와 URL에 따라 적합한 설정이 달라집니다. 길어진 URL은 QR을 조밀하게 만듭니다.
+Everything you create stays in `dev/`. That folder is ignored by Git and excluded from Docker builds.
 
-## CI와 버전 배포
+| Path | Contents |
+| --- | --- |
+| `dev/input/` | Input files you manage yourself |
+| `dev/output/` | Command-line results |
+| `dev/jobs/<id>/` | Studio jobs: input PNG, settings, hashes, results and validation |
+| `dev/qa/` | Browser test captures |
 
-- PR / main push: Docker 이미지 빌드, 전체 테스트, 개인 자료 제외 검사.
-- `v*` 태그 push: 버전 파일 일치 검사, 같은 Docker 테스트, GHCR 이미지 게시.
-- 이미지: `ghcr.io/finddme/ascii-qr-studio:<version>` 및 커밋 SHA. 재현 가능한 사용에는 버전 태그를 사용하세요.
-- 초기 저장소와 패키지는 비공개입니다. 다른 계정에서 이미지를 받으려면 해당 패키지에 대한 읽기 권한이 필요합니다.
+A downloaded ZIP leaves out the separate `input.png`, but it still contains previews of your image and the URL. Review it before sharing. History is never synced anywhere and never expires on its own.
+
+## Development
 
 ```bash
-# 릴리스: VERSION 수정·테스트·커밋 후
-# git tag v0.1.1
-# git push origin main v0.1.1
+./test.sh   # run the unit and API test suite inside Docker
 ```
 
-프로그램은 Python 코드가 실행하며 스킬은 필수가 아닙니다. 알고리즘과 의존성 설명은 [기술 문서](docs/TECHNOLOGY.md)를 참고하세요.
+`./test.sh`, `./qr.sh` and `./convert.sh` rebuild the Docker image automatically when the code has changed, so you never need to run `docker compose build` yourself. All tests use synthetic images and never contact the network.
+
+## Releases
+
+- Pull requests and pushes to `main` build the Docker image, run all tests and check that no personal files are tracked.
+- Pushing a `v*` tag checks it against `VERSION`, runs the same tests and publishes `ghcr.io/finddme/ascii-qr-studio:<version>` (plus a commit-SHA tag). Use a version tag for reproducible runs.
+
+```bash
+# after updating VERSION, testing and committing
+git tag v0.1.1
+git push origin main v0.1.1
+```
+
+## More
+
+Algorithms, dependencies and references are in [docs/TECHNOLOGY.md](docs/TECHNOLOGY.md).

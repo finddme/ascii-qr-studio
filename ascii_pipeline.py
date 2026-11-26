@@ -155,17 +155,17 @@ def save_result(image, data, mono, color, destination):
     figures = ''.join(f'<figure><figcaption>{label}</figcaption><img alt="{label}" src="{image_uri(pic)}"></figure>'
                       for label, pic in [('Original', thumb), ('Color ASCII', color), ('Monochrome ASCII', mono)])
     text = html.escape('\n'.join(data['lines']))
-    report = f'''<!doctype html><html lang="ko"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>ASCII 변환 결과</title>
+    report = f'''<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>ASCII conversion result</title>
 <style>body{{background:#17191e;color:#eee;font:16px system-ui;margin:32px}}main{{max-width:1400px;margin:auto}}
 figure{{margin:24px 0}}figcaption{{margin:8px 0;color:#bbb}}img{{max-width:100%;height:auto}}pre{{overflow:auto;font:12px/1.19 monospace}}</style>
-<main><h1>이미지 → ASCII</h1><p>{data['columns']} × {data['rows']} characters · {data['mode']} · {data['theme']} · {html.escape(data['font'])}</p>
-{figures}<details><summary>텍스트 보기</summary><pre>{text}</pre></details></main></html>'''
+<main><h1>Image → ASCII</h1><p>{data['columns']} × {data['rows']} characters · {data['mode']} · {data['theme']} · {html.escape(data['font'])}</p>
+{figures}<details><summary>Show text</summary><pre>{text}</pre></details></main></html>'''
     (destination / 'preview.html').write_text(report, encoding='utf-8')
 
 
 def main():
-    parser = argparse.ArgumentParser(description='로컬 이미지 → ASCII TXT / PNG / JSON / HTML (외부 전송 없음)')
+    parser = argparse.ArgumentParser(description='Local image → ASCII TXT / PNG / JSON / HTML (no network transfer)')
     parser.add_argument('image', type=Path)
     parser.add_argument('--output', type=Path, help='New directory; existing directories are never overwritten')
     parser.add_argument('--preset', choices=['classic', 'bold'], default='classic',

@@ -20,6 +20,7 @@ from PIL import Image, ImageOps
 from ascii_qr import create_project, validate_url
 
 ROOT = Path(__file__).parent
+STATIC={'/':'index.html','/app.js':'app.js','/fx.js':'fx.js','/style.css':'style.css','/fonts/Galmuri11-Bold.woff2':'fonts/Galmuri11-Bold.woff2'}
 DATA = Path(os.environ.get('ASCII_DATA_DIR', ROOT/'dev'))
 MAX_BODY = 18 * 1024 * 1024
 BUSY = threading.Lock()
@@ -128,11 +129,12 @@ class Handler(BaseHTTPRequestHandler):
             if match:
                 folder=job_path(match[1]).resolve();target=(folder/match[2]).resolve()
                 if not target.is_relative_to(folder): return self.respond({'error':'Not found'},404)
-            elif path in ('/','/app.js','/style.css'):
-                target=ROOT/'web'/('index.html' if path=='/' else path[1:])
+            elif path in STATIC:
+                target=ROOT/'web'/STATIC[path]
             else: return self.respond({'error':'Not found'},404)
             if not target.is_file(): return self.respond({'error':'Not found'},404)
-            return self.send_bytes(target.read_bytes(),mimetypes.guess_type(target.name)[0] or 'application/octet-stream')
+            kind='font/woff2' if target.suffix=='.woff2' else mimetypes.guess_type(target.name)[0] or 'application/octet-stream'
+            return self.send_bytes(target.read_bytes(),kind)
         except (OSError,ValueError): return self.respond({'error':'Not found'},404)
     def do_POST(self):
         if not self.allowed(): return self.respond({'error':'Local access only'},403)

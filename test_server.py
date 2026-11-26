@@ -28,6 +28,8 @@ class ServerTests(unittest.TestCase):
             with e:return e.code,e.read()
     def test_local_routes_and_input_rejection(self):
         self.assertEqual(self.request('/')[0],200)
+        for path in ('/app.js','/fx.js','/style.css','/fonts/Galmuri11-Bold.woff2'):self.assertEqual(self.request(path)[0],200,path)
+        self.assertEqual(self.request('/fonts/OFL.txt')[0],404)
         self.assertEqual(self.request('/api/health')[0],200)
         self.assertEqual(self.request('/api/jobs')[1],b'[]')
         self.assertEqual(self.request('/api/jobs',{},headers={'Content-Type':'application/json','Origin':'https://evil.test'})[0],403)
