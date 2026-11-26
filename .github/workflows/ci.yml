@@ -1,0 +1,20 @@
+name: Test
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Private files must never be tracked
+        run: |
+          test -z "$(git ls-files dev)"
+          test -z "$(git ls-files '*.png' '*.jpg' '*.jpeg' '*.mp4' '.env*')"
+      - name: Build
+        run: docker build -f docker/Dockerfile -t ascii-qr-studio:test .
+      - name: Test
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=256m ascii-qr-studio:test python -m unittest -v

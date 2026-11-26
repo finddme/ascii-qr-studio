@@ -1,0 +1,9 @@
+**
+!requirements.txt
+!ascii_pipeline.py
+!ascii_qr.py
+!server.py
+!test*.py
+!web/
+!web/**
+!VERSION

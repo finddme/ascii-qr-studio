@@ -1,0 +1,33 @@
+name: ascii-qr-studio
+x-common: &common
+  image: ascii-qr-studio:local
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  user: "${ASCII_UID:-1000}:${ASCII_GID:-1000}"
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=256m
+  volumes:
+    - ./dev:/app/dev
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+services:
+  cli:
+    <<: *common
+    profiles: [tools]
+    network_mode: none
+    command: [python, ascii_qr.py, --help]
+  web:
+    <<: *common
+    ports: ["127.0.0.1:8787:8787"]
+    networks: [local]
+    command: [python, server.py]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8787/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+networks:
+  local: {}
